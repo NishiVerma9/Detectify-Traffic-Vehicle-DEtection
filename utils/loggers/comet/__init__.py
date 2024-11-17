@@ -1,4 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
 
 import glob
 import json
@@ -10,14 +9,14 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[3]  # YOLOv5 root directory
+ROOT = FILE.parents[3]  
 if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
+    sys.path.append(str(ROOT))  
 
 try:
     import comet_ml
 
-    # Project Configuration
+   
     config = comet_ml.config.get_config()
     COMET_PROJECT_NAME = config.get_string(os.getenv("COMET_PROJECT_NAME"), "comet.project_name", default="yolov5")
 except ImportError:
@@ -40,11 +39,10 @@ COMET_MODE = os.getenv("COMET_MODE", "online")
 # Model Saving Settings
 COMET_MODEL_NAME = os.getenv("COMET_MODEL_NAME", "yolov5")
 
-# Dataset Artifact Settings
+
 COMET_UPLOAD_DATASET = os.getenv("COMET_UPLOAD_DATASET", "false").lower() == "true"
 
-# Evaluation Settings
-COMET_LOG_CONFUSION_MATRIX = os.getenv("COMET_LOG_CONFUSION_MATRIX", "true").lower() == "true"
+TRIX = os.getenv("COMET_LOG_CONFUSION_MATRIX", "true").lower() == "true"
 COMET_LOG_PREDICTIONS = os.getenv("COMET_LOG_PREDICTIONS", "true").lower() == "true"
 COMET_MAX_IMAGE_UPLOADS = int(os.getenv("COMET_MAX_IMAGE_UPLOADS", 100))
 
@@ -64,12 +62,9 @@ to_pil = T.ToPILImage()
 
 
 class CometLogger:
-    """Log metrics, parameters, source code, models and much more with Comet."""
 
     def __init__(self, opt, hyp, run_id=None, job_type="Training", **experiment_kwargs) -> None:
-        """Initializes CometLogger with given options, hyperparameters, run ID, job type, and additional experiment
-        arguments.
-        """
+        
         self.job_type = job_type
         self.opt = opt
         self.hyp = hyp
@@ -84,11 +79,11 @@ class CometLogger:
         self.log_batch_metrics = COMET_LOG_BATCH_METRICS
         self.comet_log_batch_interval = COMET_BATCH_LOGGING_INTERVAL
 
-        # Dataset Artifact Settings
+       
         self.upload_dataset = self.opt.upload_dataset or COMET_UPLOAD_DATASET
         self.resume = self.opt.resume
 
-        # Default parameters to pass to Experiment objects
+        
         self.default_experiment_kwargs = {
             "log_code": False,
             "log_env_gpu": True,
@@ -162,7 +157,7 @@ class CometLogger:
             }
         )
 
-        # Check if running the Experiment with the Comet Optimizer
+        
         if hasattr(self.opt, "comet_optimizer_id"):
             self.experiment.log_other("optimizer_id", self.opt.comet_optimizer_id)
             self.experiment.log_other("optimizer_objective", self.opt.comet_optimizer_objective)
@@ -170,7 +165,6 @@ class CometLogger:
             self.experiment.log_other("optimizer_parameters", json.dumps(self.hyp))
 
     def _get_experiment(self, mode, experiment_id=None):
-        """Returns a new or existing Comet.ml experiment based on mode and optional experiment_id."""
         if mode == "offline":
             return (
                 comet_ml.ExistingOfflineExperiment(
@@ -203,27 +197,27 @@ class CometLogger:
         return
 
     def log_metrics(self, log_dict, **kwargs):
-        """Logs metrics to the current experiment, accepting a dictionary of metric names and values."""
+       
         self.experiment.log_metrics(log_dict, **kwargs)
 
     def log_parameters(self, log_dict, **kwargs):
-        """Logs parameters to the current experiment, accepting a dictionary of parameter names and values."""
+       
         self.experiment.log_parameters(log_dict, **kwargs)
 
     def log_asset(self, asset_path, **kwargs):
-        """Logs a file or directory as an asset to the current experiment."""
+        
         self.experiment.log_asset(asset_path, **kwargs)
 
     def log_asset_data(self, asset, **kwargs):
-        """Logs in-memory data as an asset to the current experiment, with optional kwargs."""
+        
         self.experiment.log_asset_data(asset, **kwargs)
 
     def log_image(self, img, **kwargs):
-        """Logs an image to the current experiment with optional kwargs."""
+        
         self.experiment.log_image(img, **kwargs)
 
     def log_model(self, path, opt, epoch, fitness_score, best_model=False):
-        """Logs model checkpoint to experiment with path, options, epoch, fitness, and best model flag."""
+       
         if not self.save_model:
             return
 
@@ -247,7 +241,7 @@ class CometLogger:
             )
 
     def check_dataset(self, data_file):
-        """Validates the dataset configuration by loading the YAML file specified in `data_file`."""
+        
         with open(data_file) as f:
             data_config = yaml.safe_load(f)
 
@@ -260,7 +254,7 @@ class CometLogger:
         return check_dataset(data_file)
 
     def log_predictions(self, image, labelsn, path, shape, predn):
-        """Logs predictions with IOU filtering, given image, labels, path, shape, and predictions."""
+        
         if self.logged_images_count >= self.max_images:
             return
         detections = predn[predn[:, 4] > self.conf_thres]
@@ -301,7 +295,7 @@ class CometLogger:
         return
 
     def preprocess_prediction(self, image, labels, shape, pred):
-        """Processes prediction data, resizing labels and adding dataset metadata."""
+    
         nl, _ = labels.shape[0], pred.shape[0]
 
         # Predictions
@@ -321,7 +315,7 @@ class CometLogger:
         return predn, labelsn
 
     def add_assets_to_artifact(self, artifact, path, asset_path, split):
-        """Adds image and label assets to a wandb artifact given dataset split and paths."""
+        
         img_paths = sorted(glob.glob(f"{asset_path}/*"))
         label_paths = img2label_paths(img_paths)
 
@@ -347,7 +341,7 @@ class CometLogger:
         return artifact
 
     def upload_dataset_artifact(self):
-        """Uploads a YOLOv5 dataset as an artifact to the Comet.ml platform."""
+        
         dataset_name = self.data_dict.get("dataset_name", "yolov5-dataset")
         path = str((ROOT / Path(self.data_dict["path"])).resolve())
 
@@ -372,7 +366,7 @@ class CometLogger:
         return
 
     def download_dataset_artifact(self, artifact_path):
-        """Downloads a dataset artifact to a specified directory using the experiment's logged artifact."""
+       
         logged_artifact = self.experiment.get_artifact(artifact_path)
         artifact_save_dir = str(Path(self.opt.save_dir) / logged_artifact.name)
         logged_artifact.download(artifact_save_dir)
@@ -392,7 +386,7 @@ class CometLogger:
         return self.update_data_paths(data_dict)
 
     def update_data_paths(self, data_dict):
-        """Updates data paths in the dataset dictionary, defaulting 'path' to an empty string if not present."""
+        
         path = data_dict.get("path", "")
 
         for split in ["train", "val", "test"]:
@@ -405,7 +399,7 @@ class CometLogger:
         return data_dict
 
     def on_pretrain_routine_end(self, paths):
-        """Called at the end of pretraining routine to handle paths if training is not being resumed."""
+       
         if self.opt.resume:
             return
 
@@ -418,25 +412,25 @@ class CometLogger:
         return
 
     def on_train_start(self):
-        """Logs hyperparameters at the start of training."""
+        
         self.log_parameters(self.hyp)
 
     def on_train_epoch_start(self):
-        """Called at the start of each training epoch."""
+        
         return
 
     def on_train_epoch_end(self, epoch):
-        """Updates the current epoch in the experiment tracking at the end of each epoch."""
+        
         self.experiment.curr_epoch = epoch
 
         return
 
     def on_train_batch_start(self):
-        """Called at the start of each training batch."""
+        
         return
 
     def on_train_batch_end(self, log_dict, step):
-        """Callback function that updates and logs metrics at the end of each training batch if conditions are met."""
+       
         self.experiment.curr_step = step
         if self.log_batch_metrics and (step % self.comet_log_batch_interval == 0):
             self.log_metrics(log_dict, step=step)
@@ -444,7 +438,7 @@ class CometLogger:
         return
 
     def on_train_end(self, files, save_dir, last, best, epoch, results):
-        """Logs metadata and optionally saves model files at the end of training."""
+       
         if self.comet_log_predictions:
             curr_epoch = self.experiment.curr_epoch
             self.experiment.log_asset_data(self.metadata_dict, "image-metadata.json", epoch=curr_epoch)
@@ -464,7 +458,7 @@ class CometLogger:
                     overwrite=True,
                 )
 
-        # Check if running Experiment with Comet Optimizer
+        
         if hasattr(self.opt, "comet_optimizer_id"):
             metric = results.get(self.opt.comet_optimizer_metric)
             self.experiment.log_other("optimizer_metric_value", metric)
@@ -472,15 +466,15 @@ class CometLogger:
         self.finish_run()
 
     def on_val_start(self):
-        """Called at the start of validation, currently a placeholder with no functionality."""
+        
         return
 
     def on_val_batch_start(self):
-        """Placeholder called at the start of a validation batch with no current functionality."""
+        
         return
 
     def on_val_batch_end(self, batch_i, images, targets, paths, shapes, outputs):
-        """Callback executed at the end of a validation batch, conditionally logs predictions to Comet ML."""
+       
         if not (self.comet_log_predictions and ((batch_i + 1) % self.comet_log_prediction_interval == 0)):
             return
 
@@ -499,7 +493,7 @@ class CometLogger:
         return
 
     def on_val_end(self, nt, tp, fp, p, r, f1, ap, ap50, ap_class, confusion_matrix):
-        """Logs per-class metrics to Comet.ml after validation if enabled and more than one class exists."""
+        
         if self.comet_log_per_class_metrics and self.num_classes > 1:
             for i, c in enumerate(ap_class):
                 class_name = self.class_names[c]
@@ -534,18 +528,18 @@ class CometLogger:
             )
 
     def on_fit_epoch_end(self, result, epoch):
-        """Logs metrics at the end of each training epoch."""
+       
         self.log_metrics(result, epoch=epoch)
 
     def on_model_save(self, last, epoch, final_epoch, best_fitness, fi):
-        """Callback to save model checkpoints periodically if conditions are met."""
+        
         if ((epoch + 1) % self.opt.save_period == 0 and not final_epoch) and self.opt.save_period != -1:
             self.log_model(last.parent, self.opt, epoch, fi, best_model=best_fitness == fi)
 
     def on_params_update(self, params):
-        """Logs updated parameters during training."""
+        
         self.log_parameters(params)
 
     def finish_run(self):
-        """Ends the current experiment and logs its completion."""
+       
         self.experiment.end()

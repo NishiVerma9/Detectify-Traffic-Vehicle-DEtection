@@ -1,6 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-"""Perform test request."""
-
 import pprint
 
 import requests

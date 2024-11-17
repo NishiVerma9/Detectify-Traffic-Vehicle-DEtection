@@ -1,17 +1,7 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-# DIUx xView 2018 Challenge https://challenge.xviewdataset.org by U.S. National Geospatial-Intelligence Agency (NGA)
-# --------  DOWNLOAD DATA MANUALLY and jar xf val_images.zip to 'datasets/xView' before running train command!  --------
-# Example usage: python train.py --data xView.yaml
-# parent
-# ├── yolov5
-# └── datasets
-#     └── xView  ← downloads here (20.7 GB)
 
-# Train/val/test sets as 1) dir: path/to/imgs, 2) file: path/to/imgs.txt, or 3) list: [path/to/imgs1, path/to/imgs2, ..]
-path: ../datasets/xView # dataset root dir
-train: images/autosplit_train.txt # train images (relative to 'path') 90% of 847 train images
-val: images/autosplit_val.txt # train images (relative to 'path') 10% of 847 train images
-
+path: ../datasets/xView 
+train: images/autosplit_train.txt 
+val: images/autosplit_val.txt 
 # Classes
 names:
   0: Fixed-wing Aircraft
@@ -75,7 +65,6 @@ names:
   58: Pylon
   59: Tower
 
-# Download script/URL (optional) ---------------------------------------------------------------------------------------
 download: |
   import json
   import os

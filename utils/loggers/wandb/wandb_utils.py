@@ -1,8 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-
-# WARNING ⚠️ wandb is deprecated and will be removed in future release.
-# See supported integrations at https://github.com/ultralytics/yolov5#integrations
-
 import logging
 import os
 import sys
@@ -12,9 +7,9 @@ from pathlib import Path
 from utils.general import LOGGER, colorstr
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[3]  # YOLOv5 root directory
+ROOT = FILE.parents[3]  
 if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
+    sys.path.append(str(ROOT))  
 RANK = int(os.getenv("RANK", -1))
 DEPRECATION_WARNING = (
     f"{colorstr('wandb')}: WARNING ⚠️ wandb is deprecated and will be removed in a future release. "
@@ -24,37 +19,17 @@ DEPRECATION_WARNING = (
 try:
     import wandb
 
-    assert hasattr(wandb, "__version__")  # verify package import not local dir
+    assert hasattr(wandb, "__version__")  
     LOGGER.warning(DEPRECATION_WARNING)
 except (ImportError, AssertionError):
     wandb = None
 
 
 class WandbLogger:
-    """
-    Log training runs, datasets, models, and predictions to Weights & Biases.
 
-    This logger sends information to W&B at wandb.ai. By default, this information includes hyperparameters, system
-    configuration and metrics, model metrics, and basic data metrics and analyses.
-
-    By providing additional command line arguments to train.py, datasets, models and predictions can also be logged.
-
-    For more on how this logger is used, see the Weights & Biases documentation:
-    https://docs.wandb.com/guides/integrations/yolov5
-    """
 
     def __init__(self, opt, run_id=None, job_type="Training"):
-        """
-        - Initialize WandbLogger instance
-        - Upload dataset if opt.upload_dataset is True
-        - Setup training processes if job_type is 'Training'
-
-        arguments:
-        opt (namespace) -- Commandline arguments for this run
-        run_id (str) -- Run ID of W&B run to be resumed
-        job_type (str) -- To set the job_type for this run
-
-        """
+        
         # Pre-training routine --
         self.job_type = job_type
         self.wandb, self.wandb_run = wandb, wandb.run if wandb else None
@@ -78,22 +53,12 @@ class WandbLogger:
 
         if self.wandb_run and self.job_type == "Training":
             if isinstance(opt.data, dict):
-                # This means another dataset manager has already processed the dataset info (e.g. ClearML)
-                # and they will have stored the already processed dict in opt.data
+            
                 self.data_dict = opt.data
             self.setup_training(opt)
 
     def setup_training(self, opt):
-        """
-        Setup the necessary processes for training YOLO models:
-          - Attempt to download model checkpoint and dataset artifacts if opt.resume stats with WANDB_ARTIFACT_PREFIX
-          - Update data_dict, to contain info of previous run if resumed and the paths of dataset artifact if downloaded
-          - Setup log_dict, initialize bbox_interval
-
-        arguments:
-        opt (namespace) -- commandline arguments for this run
-
-        """
+        
         self.log_dict, self.current_epoch = {}, 0
         self.bbox_interval = opt.bbox_interval
         if isinstance(opt.resume, str):
@@ -117,16 +82,7 @@ class WandbLogger:
                 self.bbox_interval = opt.bbox_interval = opt.epochs + 1  # disable bbox_interval
 
     def log_model(self, path, opt, epoch, fitness_score, best_model=False):
-        """
-        Log the model checkpoint as W&B artifact.
-
-        arguments:
-        path (Path)   -- Path of directory containing the checkpoints
-        opt (namespace) -- Command line arguments for this run
-        epoch (int)  -- Current epoch number
-        fitness_score (float) -- fitness score for current epoch
-        best_model (boolean) -- Boolean representing if the current checkpoint is the best yet.
-        """
+        
         model_artifact = wandb.Artifact(
             f"run_{wandb.run.id}_model",
             type="model",
@@ -152,27 +108,17 @@ class WandbLogger:
         LOGGER.info(f"Saving model artifact on epoch {epoch + 1}")
 
     def val_one_image(self, pred, predn, path, names, im):
-        """Evaluates model prediction for a single image, returning metrics and visualizations."""
+        
         pass
 
     def log(self, log_dict):
-        """
-        Save the metrics to the logging dictionary.
-
-        arguments:
-        log_dict (Dict) -- metrics/media to be logged in current step
-        """
+        
         if self.wandb_run:
             for key, value in log_dict.items():
                 self.log_dict[key] = value
 
     def end_epoch(self):
-        """
-        Commit the log_dict, model artifacts and Tables to W&B and flush the log_dict.
-
-        arguments:
-        best_result (boolean): Boolean representing if the result of this evaluation is best or not
-        """
+        
         if self.wandb_run:
             with all_logging_disabled():
                 try:
@@ -186,7 +132,7 @@ class WandbLogger:
                 self.log_dict = {}
 
     def finish_run(self):
-        """Log metrics if any and finish the current W&B run."""
+        
         if self.wandb_run:
             if self.log_dict:
                 with all_logging_disabled():
@@ -197,11 +143,7 @@ class WandbLogger:
 
 @contextmanager
 def all_logging_disabled(highest_level=logging.CRITICAL):
-    """source - https://gist.github.com/simon-weber/7853144
-    A context manager that will prevent any logging messages triggered during the body from being processed.
-    :param highest_level: the maximum logging level in use.
-      This would only need to be changed if a custom level greater than CRITICAL is defined.
-    """
+    
     previous_level = logging.root.manager.disable
     logging.disable(highest_level)
     try:

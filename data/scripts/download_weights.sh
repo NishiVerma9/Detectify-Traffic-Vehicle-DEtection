@@ -1,13 +1,3 @@
-#!/bin/bash
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
-# Download latest models from https://github.com/ultralytics/yolov5/releases
-# Example usage: bash data/scripts/download_weights.sh
-# parent
-# └── yolov5
-#     ├── yolov5s.pt  ← downloads here
-#     ├── yolov5m.pt
-#     └── ...
-
 python - <<EOF
 from utils.downloads import attempt_download
 

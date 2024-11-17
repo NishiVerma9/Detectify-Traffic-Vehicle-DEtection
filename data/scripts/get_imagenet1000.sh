@@ -1,13 +1,4 @@
-#!/bin/bash
-# YOLOv5 🚀 by Ultralytics, AGPL-3.0 license
-# Download ILSVRC2012 ImageNet dataset https://image-net.org
-# Example usage: bash data/scripts/get_imagenet.sh
-# parent
-# ├── yolov5
-# └── datasets
-#     └── imagenet  ← downloads here
 
-# Arguments (optional) Usage: bash data/scripts/get_imagenet.sh --train --val
 if [ "$#" -gt 0 ]; then
   for opt in "$@"; do
     case "${opt}" in
@@ -21,7 +12,7 @@ else
 fi
 
 # Make dir
-d='../datasets/imagenet1000' # unzip directory
+d='../datasets/imagenet1000' 
 mkdir -p $d && cd $d
 
 # Download/unzip train

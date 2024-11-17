@@ -1,5 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-
 import logging
 import os
 from urllib.parse import urlparse
@@ -19,7 +17,7 @@ COMET_DEFAULT_CHECKPOINT_FILENAME = os.getenv("COMET_DEFAULT_CHECKPOINT_FILENAME
 
 
 def download_model_checkpoint(opt, experiment):
-    """Downloads YOLOv5 model checkpoint from Comet ML experiment, updating `opt.weights` with download path."""
+   
     model_dir = f"{opt.project}/{experiment.name}"
     os.makedirs(model_dir, exist_ok=True)
 
@@ -67,13 +65,7 @@ def download_model_checkpoint(opt, experiment):
 
 
 def set_opt_parameters(opt, experiment):
-    """
-    Update the opts Namespace with parameters from Comet's ExistingExperiment when resuming a run.
-
-    Args:
-        opt (argparse.Namespace): Namespace of command line options
-        experiment (comet_ml.APIExperiment): Comet API Experiment object
-    """
+   
     asset_list = experiment.get_asset_list()
     resume_string = opt.resume
 
@@ -86,8 +78,7 @@ def set_opt_parameters(opt, experiment):
                 setattr(opt, key, value)
             opt.resume = resume_string
 
-    # Save hyperparameters to YAML file
-    # Necessary to pass checks in training script
+    
     save_dir = f"{opt.project}/{experiment.name}"
     os.makedirs(save_dir, exist_ok=True)
 
@@ -98,17 +89,7 @@ def set_opt_parameters(opt, experiment):
 
 
 def check_comet_weights(opt):
-    """
-    Downloads model weights from Comet and updates the weights path to point to saved weights location.
-
-    Args:
-        opt (argparse.Namespace): Command Line arguments passed
-            to YOLOv5 training script
-
-    Returns:
-        None/bool: Return True if weights are successfully downloaded
-            else return None
-    """
+    
     if comet_ml is None:
         return
 
@@ -124,17 +105,7 @@ def check_comet_weights(opt):
 
 
 def check_comet_resume(opt):
-    """
-    Restores run parameters to its original state based on the model checkpoint and logged Experiment parameters.
-
-    Args:
-        opt (argparse.Namespace): Command Line arguments passed
-            to YOLOv5 training script
-
-    Returns:
-        None/bool: Return True if the run is restored successfully
-            else return None
-    """
+    
     if comet_ml is None:
         return
 

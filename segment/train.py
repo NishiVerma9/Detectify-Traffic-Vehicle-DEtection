@@ -1,19 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-"""
-Train a YOLOv5 segment model on a segment dataset Models and datasets download automatically from the latest YOLOv5
-release.
-
-Usage - Single-GPU training:
-    $ python segment/train.py --data coco128-seg.yaml --weights yolov5s-seg.pt --img 640  # from pretrained (recommended)
-    $ python segment/train.py --data coco128-seg.yaml --weights '' --cfg yolov5s-seg.yaml --img 640  # from scratch
-
-Usage - Multi-GPU DDP training:
-    $ python -m torch.distributed.run --nproc_per_node 4 --master_port 1 segment/train.py --data coco128-seg.yaml --weights yolov5s-seg.pt --img 640 --device 0,1,2,3
-
-Models:     https://github.com/ultralytics/yolov5/tree/master/models
-Datasets:   https://github.com/ultralytics/yolov5/tree/master/data
-Tutorial:   https://docs.ultralytics.com/yolov5/tutorials/train_custom_data
-"""
 
 import argparse
 import math
@@ -35,12 +19,12 @@ from torch.optim import lr_scheduler
 from tqdm import tqdm
 
 FILE = Path(__file__).resolve()
-ROOT = FILE.parents[1]  # YOLOv5 root directory
+ROOT = FILE.parents[1]  
 if str(ROOT) not in sys.path:
-    sys.path.append(str(ROOT))  # add ROOT to PATH
-ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
+    sys.path.append(str(ROOT))  
+ROOT = Path(os.path.relpath(ROOT, Path.cwd())) 
 
-import segment.val as validate  # for end-of-epoch mAP
+import segment.val as validate  
 from models.experimental import attempt_load
 from models.yolo import SegmentationModel
 from utils.autoanchor import check_anchors
@@ -89,18 +73,14 @@ from utils.torch_utils import (
     torch_distributed_zero_first,
 )
 
-LOCAL_RANK = int(os.getenv("LOCAL_RANK", -1))  # https://pytorch.org/docs/stable/elastic/run.html
+LOCAL_RANK = int(os.getenv("LOCAL_RANK", -1))  
 RANK = int(os.getenv("RANK", -1))
 WORLD_SIZE = int(os.getenv("WORLD_SIZE", 1))
 GIT_INFO = check_git_info()
 
 
 def train(hyp, opt, device, callbacks):
-    """
-    Trains the YOLOv5 model on a dataset, managing hyperparameters, model optimization, logging, and validation.
-
-    `hyp` is path/to/hyp.yaml or hyp dictionary.
-    """
+    
     (
         save_dir,
         epochs,
@@ -132,19 +112,19 @@ def train(hyp, opt, device, callbacks):
         opt.freeze,
         opt.mask_ratio,
     )
-    # callbacks.run('on_pretrain_routine_start')
+    
 
     # Directories
-    w = save_dir / "weights"  # weights dir
-    (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  # make dir
+    w = save_dir / "weights"  
+    (w.parent if evolve else w).mkdir(parents=True, exist_ok=True)  
     last, best = w / "last.pt", w / "best.pt"
 
     # Hyperparameters
     if isinstance(hyp, str):
         with open(hyp, errors="ignore") as f:
-            hyp = yaml.safe_load(f)  # load hyps dict
+            hyp = yaml.safe_load(f)  
     LOGGER.info(colorstr("hyperparameters: ") + ", ".join(f"{k}={v}" for k, v in hyp.items()))
-    opt.hyp = hyp.copy()  # for saving hyps to checkpoints
+    opt.hyp = hyp.copy()  
 
     # Save run settings
     if not evolve:
@@ -157,69 +137,69 @@ def train(hyp, opt, device, callbacks):
         logger = GenericLogger(opt=opt, console_logger=LOGGER)
 
     # Config
-    plots = not evolve and not opt.noplots  # create plots
+    plots = not evolve and not opt.noplots  
     overlap = not opt.no_overlap
     cuda = device.type != "cpu"
     init_seeds(opt.seed + 1 + RANK, deterministic=True)
     with torch_distributed_zero_first(LOCAL_RANK):
-        data_dict = data_dict or check_dataset(data)  # check if None
+        data_dict = data_dict or check_dataset(data)  
     train_path, val_path = data_dict["train"], data_dict["val"]
-    nc = 1 if single_cls else int(data_dict["nc"])  # number of classes
-    names = {0: "item"} if single_cls and len(data_dict["names"]) != 1 else data_dict["names"]  # class names
-    is_coco = isinstance(val_path, str) and val_path.endswith("coco/val2017.txt")  # COCO dataset
+    nc = 1 if single_cls else int(data_dict["nc"])  
+    names = {0: "item"} if single_cls and len(data_dict["names"]) != 1 else data_dict["names"]  
+    is_coco = isinstance(val_path, str) and val_path.endswith("coco/val2017.txt")  
 
     # Model
-    check_suffix(weights, ".pt")  # check weights
+    check_suffix(weights, ".pt")  
     pretrained = weights.endswith(".pt")
     if pretrained:
         with torch_distributed_zero_first(LOCAL_RANK):
-            weights = attempt_download(weights)  # download if not found locally
-        ckpt = torch.load(weights, map_location="cpu")  # load checkpoint to CPU to avoid CUDA memory leak
+            weights = attempt_download(weights)  
+        ckpt = torch.load(weights, map_location="cpu")  
         model = SegmentationModel(cfg or ckpt["model"].yaml, ch=3, nc=nc, anchors=hyp.get("anchors")).to(device)
-        exclude = ["anchor"] if (cfg or hyp.get("anchors")) and not resume else []  # exclude keys
-        csd = ckpt["model"].float().state_dict()  # checkpoint state_dict as FP32
-        csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  # intersect
-        model.load_state_dict(csd, strict=False)  # load
-        LOGGER.info(f"Transferred {len(csd)}/{len(model.state_dict())} items from {weights}")  # report
+        exclude = ["anchor"] if (cfg or hyp.get("anchors")) and not resume else []  
+        csd = ckpt["model"].float().state_dict()  
+        csd = intersect_dicts(csd, model.state_dict(), exclude=exclude)  
+        model.load_state_dict(csd, strict=False)  
+        LOGGER.info(f"Transferred {len(csd)}/{len(model.state_dict())} items from {weights}")  
     else:
-        model = SegmentationModel(cfg, ch=3, nc=nc, anchors=hyp.get("anchors")).to(device)  # create
-    amp = check_amp(model)  # check AMP
+        model = SegmentationModel(cfg, ch=3, nc=nc, anchors=hyp.get("anchors")).to(device)  
+    amp = check_amp(model)  
 
     # Freeze
-    freeze = [f"model.{x}." for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # layers to freeze
+    freeze = [f"model.{x}." for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  
     for k, v in model.named_parameters():
-        v.requires_grad = True  # train all layers
-        # v.register_hook(lambda x: torch.nan_to_num(x))  # NaN to 0 (commented for erratic training results)
+        v.requires_grad = True  
+    
         if any(x in k for x in freeze):
             LOGGER.info(f"freezing {k}")
             v.requires_grad = False
 
     # Image size
-    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
-    imgsz = check_img_size(opt.imgsz, gs, floor=gs * 2)  # verify imgsz is gs-multiple
+    gs = max(int(model.stride.max()), 32)  
+    imgsz = check_img_size(opt.imgsz, gs, floor=gs * 2)  
 
     # Batch size
-    if RANK == -1 and batch_size == -1:  # single-GPU only, estimate best batch size
+    if RANK == -1 and batch_size == -1:  
         batch_size = check_train_batch_size(model, imgsz, amp)
         logger.update_params({"batch_size": batch_size})
-        # loggers.on_params_update({"batch_size": batch_size})
+        
 
     # Optimizer
-    nbs = 64  # nominal batch size
-    accumulate = max(round(nbs / batch_size), 1)  # accumulate loss before optimizing
-    hyp["weight_decay"] *= batch_size * accumulate / nbs  # scale weight_decay
+    nbs = 64  
+    accumulate = max(round(nbs / batch_size), 1)  
+    hyp["weight_decay"] *= batch_size * accumulate / nbs  
     optimizer = smart_optimizer(model, opt.optimizer, hyp["lr0"], hyp["momentum"], hyp["weight_decay"])
 
     # Scheduler
     if opt.cos_lr:
-        lf = one_cycle(1, hyp["lrf"], epochs)  # cosine 1->hyp['lrf']
+        lf = one_cycle(1, hyp["lrf"], epochs)  
     else:
 
         def lf(x):
             """Linear learning rate scheduler decreasing from 1 to hyp['lrf'] over 'epochs'."""
-            return (1 - x / epochs) * (1.0 - hyp["lrf"]) + hyp["lrf"]  # linear
+            return (1 - x / epochs) * (1.0 - hyp["lrf"]) + hyp["lrf"]  
 
-    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  # plot_lr_scheduler(optimizer, scheduler, epochs)
+    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)  
 
     # EMA
     ema = ModelEMA(model) if RANK in {-1, 0} else None
@@ -265,7 +245,7 @@ def train(hyp, opt, device, callbacks):
         overlap_mask=overlap,
     )
     labels = np.concatenate(dataset.labels, 0)
-    mlc = int(labels[:, 0].max())  # max label class
+    mlc = int(labels[:, 0].max())  
     assert mlc < nc, f"Label class {mlc} exceeds nc={nc} in {data}. Possible class labels are 0-{nc - 1}"
 
     # Process 0
@@ -289,62 +269,58 @@ def train(hyp, opt, device, callbacks):
 
         if not resume:
             if not opt.noautoanchor:
-                check_anchors(dataset, model=model, thr=hyp["anchor_t"], imgsz=imgsz)  # run AutoAnchor
-            model.half().float()  # pre-reduce anchor precision
+                check_anchors(dataset, model=model, thr=hyp["anchor_t"], imgsz=imgsz)  
+            model.half().float()  
 
             if plots:
                 plot_labels(labels, names, save_dir)
-        # callbacks.run('on_pretrain_routine_end', labels, names)
+    
 
     # DDP mode
     if cuda and RANK != -1:
         model = smart_DDP(model)
 
     # Model attributes
-    nl = de_parallel(model).model[-1].nl  # number of detection layers (to scale hyps)
-    hyp["box"] *= 3 / nl  # scale to layers
-    hyp["cls"] *= nc / 80 * 3 / nl  # scale to classes and layers
-    hyp["obj"] *= (imgsz / 640) ** 2 * 3 / nl  # scale to image size and layers
+    nl = de_parallel(model).model[-1].nl  
+    hyp["box"] *= 3 / nl  
+    hyp["cls"] *= nc / 80 * 3 / nl  
+    hyp["obj"] *= (imgsz / 640) ** 2 * 3 / nl  
     hyp["label_smoothing"] = opt.label_smoothing
-    model.nc = nc  # attach number of classes to model
-    model.hyp = hyp  # attach hyperparameters to model
-    model.class_weights = labels_to_class_weights(dataset.labels, nc).to(device) * nc  # attach class weights
+    model.nc = nc  
+    model.hyp = hyp  
+    model.class_weights = labels_to_class_weights(dataset.labels, nc).to(device) * nc  
     model.names = names
 
     # Start training
     t0 = time.time()
-    nb = len(train_loader)  # number of batches
-    nw = max(round(hyp["warmup_epochs"] * nb), 100)  # number of warmup iterations, max(3 epochs, 100 iterations)
-    # nw = min(nw, (epochs - start_epoch) / 2 * nb)  # limit warmup to < 1/2 of training
+    nb = len(train_loader)  
+    nw = max(round(hyp["warmup_epochs"] * nb), 100)  
+    
     last_opt_step = -1
-    maps = np.zeros(nc)  # mAP per class
-    results = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)  # P, R, mAP@.5, mAP@.5-.95, val_loss(box, obj, cls)
-    scheduler.last_epoch = start_epoch - 1  # do not move
+    maps = np.zeros(nc)  
+    results = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)  
+    scheduler.last_epoch = start_epoch - 1  
     scaler = torch.cuda.amp.GradScaler(enabled=amp)
     stopper, stop = EarlyStopping(patience=opt.patience), False
-    compute_loss = ComputeLoss(model, overlap=overlap)  # init loss class
-    # callbacks.run('on_train_start')
+    compute_loss = ComputeLoss(model, overlap=overlap)  
+    
     LOGGER.info(
         f'Image sizes {imgsz} train, {imgsz} val\n'
         f'Using {train_loader.num_workers * WORLD_SIZE} dataloader workers\n'
         f"Logging results to {colorstr('bold', save_dir)}\n"
         f'Starting training for {epochs} epochs...'
     )
-    for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
-        # callbacks.run('on_train_epoch_start')
+    for epoch in range(start_epoch, epochs):  
+        
         model.train()
 
-        # Update image weights (optional, single-GPU only)
         if opt.image_weights:
-            cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  # class weights
-            iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)  # image weights
-            dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  # rand weighted idx
+            cw = model.class_weights.cpu().numpy() * (1 - maps) ** 2 / nc  
+            iw = labels_to_image_weights(dataset.labels, nc=nc, class_weights=cw)
+            dataset.indices = random.choices(range(dataset.n), weights=iw, k=dataset.n)  
 
-        # Update mosaic border (optional)
-        # b = int(random.uniform(0.25 * imgsz, 0.75 * imgsz + gs) // gs * gs)
-        # dataset.mosaic_border = [b - imgsz, -b]  # height, width borders
 
-        mloss = torch.zeros(4, device=device)  # mean losses
+        mloss = torch.zeros(4, device=device)  
         if RANK != -1:
             train_loader.sampler.set_epoch(epoch)
         pbar = enumerate(train_loader)
@@ -353,49 +329,47 @@ def train(hyp, opt, device, callbacks):
             % ("Epoch", "GPU_mem", "box_loss", "seg_loss", "obj_loss", "cls_loss", "Instances", "Size")
         )
         if RANK in {-1, 0}:
-            pbar = tqdm(pbar, total=nb, bar_format=TQDM_BAR_FORMAT)  # progress bar
+            pbar = tqdm(pbar, total=nb, bar_format=TQDM_BAR_FORMAT) 
         optimizer.zero_grad()
-        for i, (imgs, targets, paths, _, masks) in pbar:  # batch ------------------------------------------------------
-            # callbacks.run('on_train_batch_start')
-            ni = i + nb * epoch  # number integrated batches (since train start)
-            imgs = imgs.to(device, non_blocking=True).float() / 255  # uint8 to float32, 0-255 to 0.0-1.0
+        for i, (imgs, targets, paths, _, masks) in pbar:  
+        
+            ni = i + nb * epoch  
+            imgs = imgs.to(device, non_blocking=True).float() / 255  
 
             # Warmup
             if ni <= nw:
-                xi = [0, nw]  # x interp
-                # compute_loss.gr = np.interp(ni, xi, [0.0, 1.0])  # iou loss ratio (obj_loss = 1.0 or iou)
+                xi = [0, nw]  
                 accumulate = max(1, np.interp(ni, xi, [1, nbs / batch_size]).round())
                 for j, x in enumerate(optimizer.param_groups):
-                    # bias lr falls from 0.1 to lr0, all other lrs rise from 0.0 to lr0
+                
                     x["lr"] = np.interp(ni, xi, [hyp["warmup_bias_lr"] if j == 0 else 0.0, x["initial_lr"] * lf(epoch)])
                     if "momentum" in x:
                         x["momentum"] = np.interp(ni, xi, [hyp["warmup_momentum"], hyp["momentum"]])
 
             # Multi-scale
             if opt.multi_scale:
-                sz = random.randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  # size
-                sf = sz / max(imgs.shape[2:])  # scale factor
+                sz = random.randrange(int(imgsz * 0.5), int(imgsz * 1.5) + gs) // gs * gs  
+                sf = sz / max(imgs.shape[2:])  
                 if sf != 1:
-                    ns = [math.ceil(x * sf / gs) * gs for x in imgs.shape[2:]]  # new shape (stretched to gs-multiple)
+                    ns = [math.ceil(x * sf / gs) * gs for x in imgs.shape[2:]]  
                     imgs = nn.functional.interpolate(imgs, size=ns, mode="bilinear", align_corners=False)
 
             # Forward
             with torch.cuda.amp.autocast(amp):
-                pred = model(imgs)  # forward
+                pred = model(imgs)  
                 loss, loss_items = compute_loss(pred, targets.to(device), masks=masks.to(device).float())
                 if RANK != -1:
-                    loss *= WORLD_SIZE  # gradient averaged between devices in DDP mode
+                    loss *= WORLD_SIZE  
                 if opt.quad:
                     loss *= 4.0
 
             # Backward
             scaler.scale(loss).backward()
 
-            # Optimize - https://pytorch.org/docs/master/notes/amp_examples.html
             if ni - last_opt_step >= accumulate:
-                scaler.unscale_(optimizer)  # unscale gradients
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)  # clip gradients
-                scaler.step(optimizer)  # optimizer.step
+                scaler.unscale_(optimizer)  
+                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=10.0)  
+                scaler.step(optimizer)  
                 scaler.update()
                 optimizer.zero_grad()
                 if ema:
@@ -404,35 +378,30 @@ def train(hyp, opt, device, callbacks):
 
             # Log
             if RANK in {-1, 0}:
-                mloss = (mloss * i + loss_items) / (i + 1)  # update mean losses
-                mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  # (GB)
+                mloss = (mloss * i + loss_items) / (i + 1)  
+                mem = f"{torch.cuda.memory_reserved() / 1E9 if torch.cuda.is_available() else 0:.3g}G"  
                 pbar.set_description(
                     ("%11s" * 2 + "%11.4g" * 6)
                     % (f"{epoch}/{epochs - 1}", mem, *mloss, targets.shape[0], imgs.shape[-1])
                 )
-                # callbacks.run('on_train_batch_end', model, ni, imgs, targets, paths)
-                # if callbacks.stop_training:
-                #    return
-
-                # Mosaic plots
+               
                 if plots:
                     if ni < 3:
                         plot_images_and_masks(imgs, targets, masks, paths, save_dir / f"train_batch{ni}.jpg")
                     if ni == 10:
                         files = sorted(save_dir.glob("train*.jpg"))
                         logger.log_images(files, "Mosaics", epoch)
-            # end batch ------------------------------------------------------------------------------------------------
+        
 
         # Scheduler
-        lr = [x["lr"] for x in optimizer.param_groups]  # for loggers
+        lr = [x["lr"] for x in optimizer.param_groups]  
         scheduler.step()
 
         if RANK in {-1, 0}:
-            # mAP
-            # callbacks.run('on_train_epoch_end', epoch=epoch)
+        
             ema.update_attr(model, include=["yaml", "nc", "hyp", "names", "stride", "class_weights"])
             final_epoch = (epoch + 1 == epochs) or stopper.possible_stop
-            if not noval or final_epoch:  # Calculate mAP
+            if not noval or final_epoch:  
                 results, maps, _ = validate.run(
                     data_dict,
                     batch_size=batch_size // WORLD_SIZE * 2,
@@ -450,13 +419,12 @@ def train(hyp, opt, device, callbacks):
                 )
 
             # Update best mAP
-            fi = fitness(np.array(results).reshape(1, -1))  # weighted combination of [P, R, mAP@.5, mAP@.5-.95]
-            stop = stopper(epoch=epoch, fitness=fi)  # early stop check
+            fi = fitness(np.array(results).reshape(1, -1))  
+            stop = stopper(epoch=epoch, fitness=fi) 
             if fi > best_fitness:
                 best_fitness = fi
             log_vals = list(mloss) + list(results) + lr
-            # callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
-            # Log val metrics and media
+        
             metrics_dict = dict(zip(KEYS, log_vals))
             logger.log_metrics(metrics_dict, epoch)
 
@@ -470,7 +438,7 @@ def train(hyp, opt, device, callbacks):
                     "updates": ema.updates,
                     "optimizer": optimizer.state_dict(),
                     "opt": vars(opt),
-                    "git": GIT_INFO,  # {remote, branch, commit} if a git repo
+                    "git": GIT_INFO,  
                     "date": datetime.now().isoformat(),
                 }
 
@@ -482,24 +450,23 @@ def train(hyp, opt, device, callbacks):
                     torch.save(ckpt, w / f"epoch{epoch}.pt")
                     logger.log_model(w / f"epoch{epoch}.pt")
                 del ckpt
-                # callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
+                
 
         # EarlyStopping
-        if RANK != -1:  # if DDP training
+        if RANK != -1:  
             broadcast_list = [stop if RANK == 0 else None]
-            dist.broadcast_object_list(broadcast_list, 0)  # broadcast 'stop' to all ranks
+            dist.broadcast_object_list(broadcast_list, 0)  
             if RANK != 0:
                 stop = broadcast_list[0]
         if stop:
-            break  # must break all DDP ranks
+            break  
 
-        # end epoch ----------------------------------------------------------------------------------------------------
     # end training -----------------------------------------------------------------------------------------------------
     if RANK in {-1, 0}:
         LOGGER.info(f"\n{epoch - start_epoch + 1} epochs completed in {(time.time() - t0) / 3600:.3f} hours.")
         for f in last, best:
             if f.exists():
-                strip_optimizer(f)  # strip optimizers
+                strip_optimizer(f)  
                 if f is best:
                     LOGGER.info(f"\nValidating {f}...")
                     results, _, _ = validate.run(
@@ -507,7 +474,7 @@ def train(hyp, opt, device, callbacks):
                         batch_size=batch_size // WORLD_SIZE * 2,
                         imgsz=imgsz,
                         model=attempt_load(f, device).half(),
-                        iou_thres=0.65 if is_coco else 0.60,  # best pycocotools at iou 0.65
+                        iou_thres=0.65 if is_coco else 0.60,  
                         single_cls=single_cls,
                         dataloader=val_loader,
                         save_dir=save_dir,
@@ -518,21 +485,20 @@ def train(hyp, opt, device, callbacks):
                         compute_loss=compute_loss,
                         mask_downsample_ratio=mask_ratio,
                         overlap=overlap,
-                    )  # val best model with plots
+                    )  
                     if is_coco:
-                        # callbacks.run('on_fit_epoch_end', list(mloss) + list(results) + lr, epoch, best_fitness, fi)
+                
                         metrics_dict = dict(zip(KEYS, list(mloss) + list(results) + lr))
                         logger.log_metrics(metrics_dict, epoch)
 
-        # callbacks.run('on_train_end', last, best, epoch, results)
-        # on train end callback using genericLogger
+        
         logger.log_metrics(dict(zip(KEYS[4:16], results)), epochs)
         if not opt.evolve:
             logger.log_model(best, epoch)
         if plots:
-            plot_results_with_masks(file=save_dir / "results.csv")  # save results.png
+            plot_results_with_masks(file=save_dir / "results.csv")  
             files = ["results.png", "confusion_matrix.png", *(f"{x}_curve.png" for x in ("F1", "PR", "P", "R"))]
-            files = [(save_dir / f) for f in files if (save_dir / f).exists()]  # filter
+            files = [(save_dir / f) for f in files if (save_dir / f).exists()]  
             LOGGER.info(f"Results saved to {colorstr('bold', save_dir)}")
             logger.log_images(files, "Results", epoch + 1)
             logger.log_images(sorted(save_dir.glob("val*.jpg")), "Validation", epoch + 1)
@@ -541,11 +507,7 @@ def train(hyp, opt, device, callbacks):
 
 
 def parse_opt(known=False):
-    """
-    Parses command line arguments for training configurations, returning parsed arguments.
-
-    Supports both known and unknown args.
-    """
+    
     parser = argparse.ArgumentParser()
     parser.add_argument("--weights", type=str, default=ROOT / "yolov5s-seg.pt", help="initial weights path")
     parser.add_argument("--cfg", type=str, default="", help="model.yaml path")
@@ -597,19 +559,19 @@ def main(opt, callbacks=Callbacks()):
         check_requirements(ROOT / "requirements.txt")
 
     # Resume
-    if opt.resume and not opt.evolve:  # resume from specified or most recent last.pt
+    if opt.resume and not opt.evolve:  
         last = Path(check_file(opt.resume) if isinstance(opt.resume, str) else get_latest_run())
-        opt_yaml = last.parent.parent / "opt.yaml"  # train options yaml
-        opt_data = opt.data  # original dataset
+        opt_yaml = last.parent.parent / "opt.yaml"  
+        opt_data = opt.data 
         if opt_yaml.is_file():
             with open(opt_yaml, errors="ignore") as f:
                 d = yaml.safe_load(f)
         else:
             d = torch.load(last, map_location="cpu")["opt"]
-        opt = argparse.Namespace(**d)  # replace
-        opt.cfg, opt.weights, opt.resume = "", str(last), True  # reinstate
+        opt = argparse.Namespace(**d)  
+        opt.cfg, opt.weights, opt.resume = "", str(last), True  
         if is_url(opt_data):
-            opt.data = check_file(opt_data)  # avoid HUB resume auth timeout
+            opt.data = check_file(opt_data) 
     else:
         opt.data, opt.cfg, opt.hyp, opt.weights, opt.project = (
             check_file(opt.data),
@@ -620,11 +582,11 @@ def main(opt, callbacks=Callbacks()):
         )  # checks
         assert len(opt.cfg) or len(opt.weights), "either --cfg or --weights must be specified"
         if opt.evolve:
-            if opt.project == str(ROOT / "runs/train-seg"):  # if default project name, rename to runs/evolve-seg
+            if opt.project == str(ROOT / "runs/train-seg"):  
                 opt.project = str(ROOT / "runs/evolve-seg")
-            opt.exist_ok, opt.resume = opt.resume, False  # pass resume to exist_ok and disable resume
+            opt.exist_ok, opt.resume = opt.resume, False  
         if opt.name == "cfg":
-            opt.name = Path(opt.cfg).stem  # use model.yaml as name
+            opt.name = Path(opt.cfg).stem  
         opt.save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
 
     # DDP mode
@@ -644,52 +606,52 @@ def main(opt, callbacks=Callbacks()):
     if not opt.evolve:
         train(opt.hyp, opt, device, callbacks)
 
-    # Evolve hyperparameters (optional)
+    
     else:
-        # Hyperparameter evolution metadata (mutation scale 0-1, lower_limit, upper_limit)
+    
         meta = {
-            "lr0": (1, 1e-5, 1e-1),  # initial learning rate (SGD=1E-2, Adam=1E-3)
-            "lrf": (1, 0.01, 1.0),  # final OneCycleLR learning rate (lr0 * lrf)
-            "momentum": (0.3, 0.6, 0.98),  # SGD momentum/Adam beta1
-            "weight_decay": (1, 0.0, 0.001),  # optimizer weight decay
-            "warmup_epochs": (1, 0.0, 5.0),  # warmup epochs (fractions ok)
-            "warmup_momentum": (1, 0.0, 0.95),  # warmup initial momentum
-            "warmup_bias_lr": (1, 0.0, 0.2),  # warmup initial bias lr
-            "box": (1, 0.02, 0.2),  # box loss gain
-            "cls": (1, 0.2, 4.0),  # cls loss gain
-            "cls_pw": (1, 0.5, 2.0),  # cls BCELoss positive_weight
-            "obj": (1, 0.2, 4.0),  # obj loss gain (scale with pixels)
-            "obj_pw": (1, 0.5, 2.0),  # obj BCELoss positive_weight
-            "iou_t": (0, 0.1, 0.7),  # IoU training threshold
-            "anchor_t": (1, 2.0, 8.0),  # anchor-multiple threshold
-            "anchors": (2, 2.0, 10.0),  # anchors per output grid (0 to ignore)
-            "fl_gamma": (0, 0.0, 2.0),  # focal loss gamma (efficientDet default gamma=1.5)
-            "hsv_h": (1, 0.0, 0.1),  # image HSV-Hue augmentation (fraction)
-            "hsv_s": (1, 0.0, 0.9),  # image HSV-Saturation augmentation (fraction)
-            "hsv_v": (1, 0.0, 0.9),  # image HSV-Value augmentation (fraction)
-            "degrees": (1, 0.0, 45.0),  # image rotation (+/- deg)
-            "translate": (1, 0.0, 0.9),  # image translation (+/- fraction)
-            "scale": (1, 0.0, 0.9),  # image scale (+/- gain)
-            "shear": (1, 0.0, 10.0),  # image shear (+/- deg)
-            "perspective": (0, 0.0, 0.001),  # image perspective (+/- fraction), range 0-0.001
-            "flipud": (1, 0.0, 1.0),  # image flip up-down (probability)
-            "fliplr": (0, 0.0, 1.0),  # image flip left-right (probability)
-            "mosaic": (1, 0.0, 1.0),  # image mixup (probability)
-            "mixup": (1, 0.0, 1.0),  # image mixup (probability)
+            "lr0": (1, 1e-5, 1e-1),  
+            "lrf": (1, 0.01, 1.0),  
+            "momentum": (0.3, 0.6, 0.98),  
+            "weight_decay": (1, 0.0, 0.001),  
+            "warmup_epochs": (1, 0.0, 5.0),  
+            "warmup_momentum": (1, 0.0, 0.95),  
+            "warmup_bias_lr": (1, 0.0, 0.2),  
+            "box": (1, 0.02, 0.2),  
+            "cls": (1, 0.2, 4.0),  
+            "cls_pw": (1, 0.5, 2.0),  
+            "obj": (1, 0.2, 4.0),  
+            "obj_pw": (1, 0.5, 2.0), 
+            "iou_t": (0, 0.1, 0.7),  
+            "anchor_t": (1, 2.0, 8.0),  
+            "anchors": (2, 2.0, 10.0), 
+            "fl_gamma": (0, 0.0, 2.0),  
+            "hsv_h": (1, 0.0, 0.1),  
+            "hsv_s": (1, 0.0, 0.9),  
+            "hsv_v": (1, 0.0, 0.9),  
+            "degrees": (1, 0.0, 45.0),  
+            "translate": (1, 0.0, 0.9),  
+            "scale": (1, 0.0, 0.9),  
+            "shear": (1, 0.0, 10.0),  
+            "perspective": (0, 0.0, 0.001),  
+            "flipud": (1, 0.0, 1.0),  
+            "fliplr": (0, 0.0, 1.0),  
+            "mosaic": (1, 0.0, 1.0),  
+            "mixup": (1, 0.0, 1.0),  
             "copy_paste": (1, 0.0, 1.0),
-        }  # segment copy-paste (probability)
+        }  
 
         with open(opt.hyp, errors="ignore") as f:
-            hyp = yaml.safe_load(f)  # load hyps dict
-            if "anchors" not in hyp:  # anchors commented in hyp.yaml
+            hyp = yaml.safe_load(f)  
+            if "anchors" not in hyp:  
                 hyp["anchors"] = 3
         if opt.noautoanchor:
             del hyp["anchors"], meta["anchors"]
-        opt.noval, opt.nosave, save_dir = True, True, Path(opt.save_dir)  # only val/save final epoch
-        # ei = [isinstance(x, (int, float)) for x in hyp.values()]  # evolvable indices
+        opt.noval, opt.nosave, save_dir = True, True, Path(opt.save_dir)  
+    
         evolve_yaml, evolve_csv = save_dir / "hyp_evolve.yaml", save_dir / "evolve.csv"
         if opt.bucket:
-            # download evolve.csv if exists
+            
             subprocess.run(
                 [
                     "gsutil",
@@ -699,37 +661,37 @@ def main(opt, callbacks=Callbacks()):
                 ]
             )
 
-        for _ in range(opt.evolve):  # generations to evolve
-            if evolve_csv.exists():  # if evolve.csv exists: select best hyps and mutate
+        for _ in range(opt.evolve):  
+            if evolve_csv.exists():  
                 # Select parent(s)
-                parent = "single"  # parent selection method: 'single' or 'weighted'
+                parent = "single" 
                 x = np.loadtxt(evolve_csv, ndmin=2, delimiter=",", skiprows=1)
-                n = min(5, len(x))  # number of previous results to consider
-                x = x[np.argsort(-fitness(x))][:n]  # top n mutations
-                w = fitness(x) - fitness(x).min() + 1e-6  # weights (sum > 0)
+                n = min(5, len(x))  
+                x = x[np.argsort(-fitness(x))][:n]  
+                w = fitness(x) - fitness(x).min() + 1e-6  
                 if parent == "single" or len(x) == 1:
-                    # x = x[random.randint(0, n - 1)]  # random selection
-                    x = x[random.choices(range(n), weights=w)[0]]  # weighted selection
+                    
+                    x = x[random.choices(range(n), weights=w)[0]]  
                 elif parent == "weighted":
-                    x = (x * w.reshape(n, 1)).sum(0) / w.sum()  # weighted combination
+                    x = (x * w.reshape(n, 1)).sum(0) / w.sum()  
 
                 # Mutate
-                mp, s = 0.8, 0.2  # mutation probability, sigma
+                mp, s = 0.8, 0.2  
                 npr = np.random
                 npr.seed(int(time.time()))
-                g = np.array([meta[k][0] for k in hyp.keys()])  # gains 0-1
+                g = np.array([meta[k][0] for k in hyp.keys()])  
                 ng = len(meta)
                 v = np.ones(ng)
-                while all(v == 1):  # mutate until a change occurs (prevent duplicates)
+                while all(v == 1):  
                     v = (g * (npr.random(ng) < mp) * npr.randn(ng) * npr.random() * s + 1).clip(0.3, 3.0)
-                for i, k in enumerate(hyp.keys()):  # plt.hist(v.ravel(), 300)
-                    hyp[k] = float(x[i + 12] * v[i])  # mutate
+                for i, k in enumerate(hyp.keys()):  
+                    hyp[k] = float(x[i + 12] * v[i])  
 
             # Constrain to limits
             for k, v in meta.items():
-                hyp[k] = max(hyp[k], v[1])  # lower limit
-                hyp[k] = min(hyp[k], v[2])  # upper limit
-                hyp[k] = round(hyp[k], 5)  # significant digits
+                hyp[k] = max(hyp[k], v[1])  
+                hyp[k] = min(hyp[k], v[2])  
+                hyp[k] = round(hyp[k], 5)  
 
             # Train mutation
             results = train(hyp.copy(), opt, device, callbacks)
@@ -747,11 +709,7 @@ def main(opt, callbacks=Callbacks()):
 
 
 def run(**kwargs):
-    """
-    Executes YOLOv5 training with given parameters, altering options programmatically; returns updated options.
-
-    Example: import train; train.run(data='coco128.yaml', imgsz=320, weights='yolov5m.pt')
-    """
+   
     opt = parse_opt(True)
     for k, v in kwargs.items():
         setattr(opt, k, v)

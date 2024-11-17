@@ -1,0 +1,151 @@
+/* Resetting default margins and paddings */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* General body style */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url('images_01.jpg'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+/* Container styling */
+.container {
+    background-color: rgba(255, 255, 255, 0.8); 
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+    animation: fadeIn 1s ease;
+}
+
+/* Smooth fade-in animation */
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Heading style */
+h1 {
+    font-size: 36px;
+    color: #2c3e50;
+    margin-bottom: 10px;
+}
+
+/* Paragraph styling */
+p {
+    font-size: 16px;
+    color: #7f8c8d;
+    margin-bottom: 30px;
+}
+
+/* Form label */
+label {
+    font-size: 18px;
+    font-weight: bold;
+    color: #34495e;
+}
+
+/* Input file styling */
+input[type="file"] {
+    display: block;
+    margin: 20px auto;
+    padding: 14px;
+    width: 80%;
+    border: 2px dashed #2980b9;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+    transition: border-color 0.3s ease;
+    cursor: pointer;
+}
+
+input[type="file"]:hover {
+    border-color: #3498db;
+}
+
+/* Button styling */
+button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 14px 28px;
+    border-radius: 20px;
+    font-size: 18px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    margin-top: 15px;
+}
+
+button:hover {
+    background-color: #2980b9;
+}
+
+/* Result box styling */
+.result {
+    margin-top: 40px;
+    padding: 20px;
+    border-radius: 15px;
+    background-color: #ecf0f1;
+    display: none;
+    text-align: center;
+}
+
+.result img,
+.result video {
+    max-width: 100%;
+    border-radius: 12px;
+    border: 2px solid #bdc3c7;
+    margin-top: 20px;
+}
+
+/* Footer styling */
+footer {
+    margin-top: 20px;
+    font-size: 14px;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+footer a {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Adding responsive design */
+@media (max-width: 600px) {
+    .container {
+        padding: 30px;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    button {
+        padding: 12px 24px;
+        font-size: 16px;
+    }
+}

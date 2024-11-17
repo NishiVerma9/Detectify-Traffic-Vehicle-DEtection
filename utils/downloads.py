@@ -1,6 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-"""Download utils."""
-
 import logging
 import subprocess
 import urllib
@@ -11,7 +8,7 @@ import torch
 
 
 def is_url(url, check=True):
-    """Determines if a string is a URL and optionally checks its existence online, returning a boolean."""
+    
     try:
         url = str(url)
         result = urllib.parse.urlparse(url)
@@ -22,23 +19,18 @@ def is_url(url, check=True):
 
 
 def gsutil_getsize(url=""):
-    """
-    Returns the size in bytes of a file at a Google Cloud Storage URL using `gsutil du`.
-
-    Returns 0 if the command fails or output is empty.
-    """
+   
     output = subprocess.check_output(["gsutil", "du", url], shell=True, encoding="utf-8")
     return int(output.split()[0]) if output else 0
 
 
 def url_getsize(url="https://ultralytics.com/images/bus.jpg"):
-    """Returns the size in bytes of a downloadable file at a given URL; defaults to -1 if not found."""
     response = requests.head(url, allow_redirects=True)
     return int(response.headers.get("content-length", -1))
 
 
 def curl_download(url, filename, *, silent: bool = False) -> bool:
-    """Download a file from a url to a filename using curl."""
+    
     silent_option = "sS" if silent else ""  # silent
     proc = subprocess.run(
         [
@@ -58,11 +50,6 @@ def curl_download(url, filename, *, silent: bool = False) -> bool:
 
 
 def safe_download(file, url, url2=None, min_bytes=1e0, error_msg=""):
-    """
-    Downloads a file from a URL (or alternate URL) to a specified path if file is above a minimum size.
-
-    Removes incomplete downloads.
-    """
     from utils.general import LOGGER
 
     file = Path(file)
@@ -75,24 +62,21 @@ def safe_download(file, url, url2=None, min_bytes=1e0, error_msg=""):
         if file.exists():
             file.unlink()  # remove partial downloads
         LOGGER.info(f"ERROR: {e}\nRe-attempting {url2 or url} to {file}...")
-        # curl download, retry and resume on fail
+        
         curl_download(url2 or url, file)
     finally:
         if not file.exists() or file.stat().st_size < min_bytes:  # check
             if file.exists():
-                file.unlink()  # remove partial downloads
+                file.unlink()  
             LOGGER.info(f"ERROR: {assert_msg}\n{error_msg}")
         LOGGER.info("")
 
 
 def attempt_download(file, repo="ultralytics/yolov5", release="v7.0"):
-    """Downloads a file from GitHub release assets or via direct URL if not found locally, supporting backup
-    versions.
-    """
+    
     from utils.general import LOGGER
 
     def github_assets(repository, version="latest"):
-        """Fetches GitHub repository release tag and asset names using the GitHub API."""
         if version != "latest":
             version = f"tags/{version}"  # i.e. tags/v7.0
         response = requests.get(f"https://api.github.com/repos/{repository}/releases/{version}").json()  # github api
@@ -101,12 +85,12 @@ def attempt_download(file, repo="ultralytics/yolov5", release="v7.0"):
     file = Path(str(file).strip().replace("'", ""))
     if not file.exists():
         # URL specified
-        name = Path(urllib.parse.unquote(str(file))).name  # decode '%2F' to '/' etc.
-        if str(file).startswith(("http:/", "https:/")):  # download
-            url = str(file).replace(":/", "://")  # Pathlib turns :// -> :/
-            file = name.split("?")[0]  # parse authentication https://url.com/file.txt?auth...
+        name = Path(urllib.parse.unquote(str(file))).name  
+        if str(file).startswith(("http:/", "https:/")): 
+            url = str(file).replace(":/", "://")  
+            file = name.split("?")[0]  
             if Path(file).is_file():
-                LOGGER.info(f"Found {url} locally at {file}")  # file already exists
+                LOGGER.info(f"Found {url} locally at {file}")  
             else:
                 safe_download(file=file, url=url, min_bytes=1e5)
             return file

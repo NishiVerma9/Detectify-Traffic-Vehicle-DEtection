@@ -1,6 +1,3 @@
-# Ultralytics YOLOv5 🚀, AGPL-3.0 license
-"""Plotting utils."""
-
 import contextlib
 import math
 import os
@@ -25,17 +22,11 @@ from utils.metrics import fitness
 # Settings
 RANK = int(os.getenv("RANK", -1))
 matplotlib.rc("font", **{"size": 11})
-matplotlib.use("Agg")  # for writing to files only
-
+matplotlib.use("Agg")  
 
 class Colors:
-    # Ultralytics color palette https://ultralytics.com/
+    
     def __init__(self):
-        """
-        Initializes the Colors class with a palette derived from Ultralytics color scheme, converting hex codes to RGB.
-
-        Colors derived from `hex = matplotlib.colors.TABLEAU_COLORS.values()`.
-        """
         hexs = (
             "FF3838",
             "FF9D97",
@@ -62,35 +53,29 @@ class Colors:
         self.n = len(self.palette)
 
     def __call__(self, i, bgr=False):
-        """Returns color from palette by index `i`, in BGR format if `bgr=True`, else RGB; `i` is an integer index."""
+        
         c = self.palette[int(i) % self.n]
         return (c[2], c[1], c[0]) if bgr else c
 
     @staticmethod
     def hex2rgb(h):
-        """Converts hexadecimal color `h` to an RGB tuple (PIL-compatible) with order (R, G, B)."""
+        
         return tuple(int(h[1 + i : 1 + i + 2], 16) for i in (0, 2, 4))
 
 
-colors = Colors()  # create instance for 'from utils.plots import colors'
+colors = Colors()  
 
 
 def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detect/exp")):
-    """
-    x:              Features to be visualized
-    module_type:    Module type
-    stage:          Module stage within model
-    n:              Maximum number of feature maps to plot
-    save_dir:       Directory to save results
-    """
+    
     if ("Detect" not in module_type) and (
         "Segment" not in module_type
-    ):  # 'Detect' for Object Detect task,'Segment' for Segment task
-        batch, channels, height, width = x.shape  # batch, channels, height, width
+    ): 
+        batch, channels, height, width = x.shape  
         if height > 1 and width > 1:
             f = save_dir / f"stage{stage}_{module_type.split('.')[-1]}_features.png"  # filename
 
-            blocks = torch.chunk(x[0].cpu(), channels, dim=0)  # select batch index 0, block by channels
+            blocks = torch.chunk(x[0].cpu(), channels, dim=0) 
             n = min(n, channels)  # number of plots
             fig, ax = plt.subplots(math.ceil(n / 8), 8, tight_layout=True)  # 8 rows x n/8 cols
             ax = ax.ravel()
@@ -106,11 +91,6 @@ def feature_visualization(x, module_type, stage, n=32, save_dir=Path("runs/detec
 
 
 def hist2d(x, y, n=100):
-    """
-    Generates a logarithmic 2D histogram, useful for visualizing label or evolution distributions.
-
-    Used in used in labels.png and evolve.png.
-    """
     xedges, yedges = np.linspace(x.min(), x.max(), n), np.linspace(y.min(), y.max(), n)
     hist, xedges, yedges = np.histogram2d(x, y, (xedges, yedges))
     xidx = np.clip(np.digitize(x, xedges) - 1, 0, hist.shape[0] - 1)
@@ -122,11 +102,8 @@ def butter_lowpass_filtfilt(data, cutoff=1500, fs=50000, order=5):
     """Applies a low-pass Butterworth filter to `data` with specified `cutoff`, `fs`, and `order`."""
     from scipy.signal import butter, filtfilt
 
-    # https://stackoverflow.com/questions/28536191/how-to-filter-smooth-with-scipy-numpy
+   
     def butter_lowpass(cutoff, fs, order):
-        """Applies a low-pass Butterworth filter to a signal with specified cutoff frequency, sample rate, and filter
-        order.
-        """
         nyq = 0.5 * fs
         normal_cutoff = cutoff / nyq
         return butter(order, normal_cutoff, btype="low", analog=False)
@@ -136,9 +113,6 @@ def butter_lowpass_filtfilt(data, cutoff=1500, fs=50000, order=5):
 
 
 def output_to_target(output, max_det=300):
-    """Converts YOLOv5 model output to [batch_id, class_id, x, y, w, h, conf] format for plotting, limiting detections
-    to `max_det`.
-    """
     targets = []
     for i, o in enumerate(output):
         box, conf, cls = o[:max_det, :6].cpu().split((4, 1, 1), 1)
@@ -156,17 +130,17 @@ def plot_images(images, targets, paths=None, fname="images.jpg", names=None):
         targets = targets.cpu().numpy()
 
     max_size = 1920  # max image size
-    max_subplots = 16  # max image subplots, i.e. 4x4
-    bs, _, h, w = images.shape  # batch size, _, height, width
+    max_subplots = 16  
+    bs, _, h, w = images.shape  
     bs = min(bs, max_subplots)  # limit plot images
-    ns = np.ceil(bs**0.5)  # number of subplots (square)
+    ns = np.ceil(bs**0.5)  
     if np.max(images[0]) <= 1:
         images *= 255  # de-normalise (optional)
 
     # Build Image
     mosaic = np.full((int(ns * h), int(ns * w), 3), 255, dtype=np.uint8)  # init
     for i, im in enumerate(images):
-        if i == max_subplots:  # if last batch has fewer images than we expect
+        if i == max_subplots:  
             break
         x, y = int(w * (i // ns)), int(h * (i % ns))  # block origin
         im = im.transpose(1, 2, 0)
@@ -191,14 +165,13 @@ def plot_images(images, targets, paths=None, fname="images.jpg", names=None):
             ti = targets[targets[:, 0] == i]  # image targets
             boxes = xywh2xyxy(ti[:, 2:6]).T
             classes = ti[:, 1].astype("int")
-            labels = ti.shape[1] == 6  # labels if no conf column
-            conf = None if labels else ti[:, 6]  # check for confidence presence (label vs pred)
-
+            labels = ti.shape[1] == 6  
+            conf = None if labels else ti[:, 6]  
             if boxes.shape[1]:
                 if boxes.max() <= 1.01:  # if normalized with tolerance 0.01
                     boxes[[0, 2]] *= w  # scale to pixels
                     boxes[[1, 3]] *= h
-                elif scale < 1:  # absolute coords need scale if image scales
+                elif scale < 1:  
                     boxes *= scale
             boxes[[0, 2]] += x
             boxes[[1, 3]] += y
@@ -213,7 +186,7 @@ def plot_images(images, targets, paths=None, fname="images.jpg", names=None):
 
 
 def plot_lr_scheduler(optimizer, scheduler, epochs=300, save_dir=""):
-    """Plots learning rate schedule for given optimizer and scheduler, saving plot to `save_dir`."""
+   
     optimizer, scheduler = copy(optimizer), copy(scheduler)  # do not modify originals
     y = []
     for _ in range(epochs):
@@ -230,12 +203,6 @@ def plot_lr_scheduler(optimizer, scheduler, epochs=300, save_dir=""):
 
 
 def plot_val_txt():
-    """
-    Plots 2D and 1D histograms of bounding box centers from 'val.txt' using matplotlib, saving as 'hist2d.png' and
-    'hist1d.png'.
-
-    Example: from utils.plots import *; plot_val()
-    """
     x = np.loadtxt("val.txt", dtype=np.float32)
     box = xyxy2xywh(x[:, :4])
     cx, cy = box[:, 0], box[:, 1]
@@ -252,11 +219,6 @@ def plot_val_txt():
 
 
 def plot_targets_txt():
-    """
-    Plots histograms of object detection targets from 'targets.txt', saving the figure as 'targets.jpg'.
-
-    Example: from utils.plots import *; plot_targets_txt()
-    """
     x = np.loadtxt("targets.txt", dtype=np.float32).T
     s = ["x targets", "y targets", "width targets", "height targets"]
     fig, ax = plt.subplots(2, 2, figsize=(8, 8), tight_layout=True)
@@ -269,19 +231,13 @@ def plot_targets_txt():
 
 
 def plot_val_study(file="", dir="", x=None):
-    """
-    Plots validation study results from 'study*.txt' files in a directory or a specific file, comparing model
-    performance and speed.
-
-    Example: from utils.plots import *; plot_val_study()
-    """
     save_dir = Path(file).parent if file else Path(dir)
     plot2 = False  # plot additional results
     if plot2:
         ax = plt.subplots(2, 4, figsize=(10, 6), tight_layout=True)[1].ravel()
 
     fig2, ax2 = plt.subplots(1, 1, figsize=(8, 4), tight_layout=True)
-    # for f in [save_dir / f'study_coco_{x}.txt' for x in ['yolov5n6', 'yolov5s6', 'yolov5m6', 'yolov5l6', 'yolov5x6']]:
+    
     for f in sorted(save_dir.glob("study*.txt")):
         y = np.loadtxt(f, dtype=np.float32, usecols=[0, 1, 2, 3, 7, 8, 9], ndmin=2).T
         x = np.arange(y.shape[1]) if x is None else np.array(x)
@@ -323,9 +279,9 @@ def plot_val_study(file="", dir="", x=None):
     plt.savefig(f, dpi=300)
 
 
-@TryExcept()  # known issue https://github.com/ultralytics/yolov5/issues/5395
+@TryExcept()  
 def plot_labels(labels, names=(), save_dir=Path("")):
-    """Plots dataset labels, saving correlogram and label images, handles classes, and visualizes bounding boxes."""
+    
     LOGGER.info(f"Plotting labels to {save_dir / 'labels.jpg'}... ")
     c, b = labels[:, 0], labels[:, 1:].transpose()  # classes, boxes
     nc = int(c.max() + 1)  # number of classes
@@ -400,11 +356,6 @@ def imshow_cls(im, labels=None, pred=None, names=None, nmax=25, verbose=False, f
 
 
 def plot_evolve(evolve_csv="path/to/evolve.csv"):
-    """
-    Plots hyperparameter evolution results from a given CSV, saving the plot and displaying best results.
-
-    Example: from utils.plots import *; plot_evolve()
-    """
     evolve_csv = Path(evolve_csv)
     data = pd.read_csv(evolve_csv)
     keys = [x.strip() for x in data.columns]
@@ -431,11 +382,6 @@ def plot_evolve(evolve_csv="path/to/evolve.csv"):
 
 
 def plot_results(file="path/to/results.csv", dir=""):
-    """
-    Plots training results from a 'results.csv' file; accepts file path and directory as arguments.
-
-    Example: from utils.plots import *; plot_results('path/to/results.csv')
-    """
     save_dir = Path(file).parent if file else Path(dir)
     fig, ax = plt.subplots(2, 5, figsize=(12, 6), tight_layout=True)
     ax = ax.ravel()
@@ -462,11 +408,6 @@ def plot_results(file="path/to/results.csv", dir=""):
 
 
 def profile_idetection(start=0, stop=0, labels=(), save_dir=""):
-    """
-    Plots per-image iDetection logs, comparing metrics like storage and performance over time.
-
-    Example: from utils.plots import *; profile_idetection()
-    """
     ax = plt.subplots(2, 4, figsize=(12, 6), tight_layout=True)[1].ravel()
     s = ["Images", "Free Storage (GB)", "RAM Usage (GB)", "Battery", "dt_raw (ms)", "dt_smooth (ms)", "real-world FPS"]
     files = list(Path(save_dir).glob("frames*.txt"))
@@ -497,20 +438,16 @@ def profile_idetection(start=0, stop=0, labels=(), save_dir=""):
 
 
 def save_one_box(xyxy, im, file=Path("im.jpg"), gain=1.02, pad=10, square=False, BGR=False, save=True):
-    """Crops and saves an image from bounding box `xyxy`, applied with `gain` and `pad`, optionally squares and adjusts
-    for BGR.
-    """
     xyxy = torch.tensor(xyxy).view(-1, 4)
     b = xyxy2xywh(xyxy)  # boxes
     if square:
-        b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  # attempt rectangle to square
-    b[:, 2:] = b[:, 2:] * gain + pad  # box wh * gain + pad
+        b[:, 2:] = b[:, 2:].max(1)[0].unsqueeze(1)  
+    b[:, 2:] = b[:, 2:] * gain + pad  
     xyxy = xywh2xyxy(b).long()
     clip_boxes(xyxy, im.shape)
     crop = im[int(xyxy[0, 1]) : int(xyxy[0, 3]), int(xyxy[0, 0]) : int(xyxy[0, 2]), :: (1 if BGR else -1)]
     if save:
         file.parent.mkdir(parents=True, exist_ok=True)  # make directory
         f = str(increment_path(file).with_suffix(".jpg"))
-        # cv2.imwrite(f, crop)  # save BGR, https://github.com/ultralytics/yolov5/issues/7007 chroma subsampling issue
         Image.fromarray(crop[..., ::-1]).save(f, quality=95, subsampling=0)  # save RGB
     return crop
