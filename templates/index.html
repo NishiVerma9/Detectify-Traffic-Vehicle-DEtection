@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Decorative elements -->
+    <div class="decorative-circle"></div>
+    <div class="decorative-circle"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="logo">Detectify</div>
+        <div>
+            <button class="nav-button" id="loginBtn">Login</button>
+            <button class="nav-button" id="signupBtn">Sign Up</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <h1>Detectify: Traffic Vehicle Detection System</h1>
+        <p class="subtitle">Upload an image or video to detect objects</p>
+
+        <div class="upload-section">
+            <form id="upload-form">
+                <div class="file-upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <input type="file" id="file" name="file" accept="image/*, video/*" required>
+                    <p>Drag & Drop or Click to Upload<br>
+                        <small>(Supports Images and Videos)</small>
+                    </p>
+                </div>
+                <button type="submit" class="detect-button">
+                    <i class="fas fa-search"></i> Detect Objects
+                </button>
+            </form>
+        </div>
+
+        <div class="result" id="result">
+            <p id="loading-message" style="display:none;">
+                <i class="fas fa-spinner fa-spin"></i> Processing...
+            </p>
+            <div class="media-preview">
+                <!-- For image preview -->
+                <img id="file-preview" src="" alt="Preview" style="display:none;">
+                <!-- For video preview -->
+                <video id="video-preview" controls style="display:none; max-width: 100%;"></video>
+            </div>
+            <div class="detection-results">
+                <!-- For processed image -->
+                <img id="result-image" src="" alt="Detection Result" style="display:none;">
+                <!-- For processed video -->
+                <video id="result-video" controls controlsList="nodownload" playsinline style="display:none; max-width: 100%;">
+                    Your browser does not support the video tag.
+                </video>
+                <!-- Fallback download link -->
+                <a id="avi-download-link" href="#" style="display:none;" class="download-button">
+                    <i class="fas fa-download"></i> Download Video
+                </a>
+            </div>
+            <div id="detections-list" class="detections-list" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal" id="loginModal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Login</h2>
+            <form>
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Password" required>
+                <button type="submit" class="detect-button">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Signup Modal -->
+    <div class="modal" id="signupModal">
+        <div class="modal-content">
+            <span class="close-signup">&times;</span>
+            <h2>Sign Up</h2>
+            <form>
+                <input type="text" placeholder="Name" required>
+                <input type="email" placeholder="Email" required>
+                <input type="password" placeholder="Password" required>
+                <button type="submit" class="detect-button">Sign Up</button>
+            </form>
+        </div>
+    </div>
+
+    <footer>
+        <p>© 2024 Detectify. All rights reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

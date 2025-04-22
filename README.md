@@ -38,7 +38,7 @@ Detectify is a web application that allows users to upload images or videos and 
    ```
 4. Open the application in your browser:
    ```
-   http://localhost:3000
+   http://localhost:5000
    ```
 
 ## Usage
